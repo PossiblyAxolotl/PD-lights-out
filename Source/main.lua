@@ -2,6 +2,7 @@ import "CoreLibs/graphics"
 import "CoreLibs/math"
 import "CoreLibs/sprites"
 import "CoreLibs/object"
+import "CoreLibs/timer"
 import "CoreLibs/animator"
 import "particles.lua"
 import "levels.lua"
@@ -19,6 +20,8 @@ local imgOverlay = gfx.image.new(240,160,gfx.kColorBlack)
 local tabPlayer = gfx.imagetable.new("gfx/player/goober")
 local tabPlayerFace = gfx.imagetable.new("gfx/player/gooberFace")
 
+local playing = true
+
 sprPlayer = gfx.sprite.new(tabPlayer[5])
 sprPlayer.frame = 5
 sprPlayer.counter = 0
@@ -35,6 +38,8 @@ gfx.sprite.addEmptyCollisionSprite(-10,-10,10,130)
 local sJump = playdate.sound.sampleplayer.new("sfx/jump")
 local sHurt = playdate.sound.sampleplayer.new("sfx/hurt")
 
+local imgGN = gfx.image.new("gfx/gn")
+
 local pHurt = ParticleCircle(200,120)
 pHurt:setSize(5,7)
 pHurt:setMode(Particles.modes.DECAY)
@@ -48,13 +53,16 @@ playdate.getSystemMenu():addMenuItem("By PossiblyAx", function() print("https://
 
 mus = playdate.sound.fileplayer.new("sfx/eepy")
 mus:play(0)
+local sEnd = playdate.sound.sampleplayer.new("sfx/end")
+
+sgn = false
 
 --transitionTo(function() print("done") end)
 function playdate.update()
     sprPlayer.counter += 1
     sprPlayer.velocity.y += 0.4
 
-    if not sprPlayer.onFloor then
+    if not sprPlayer.onFloor and playing then
         if sprPlayer.counter <= 4 and sprPlayer.frame ~= 11 then
             sprPlayer:setImage(tabPlayer[11])
         elseif sprPlayer.counter <= 8 and sprPlayer.frame ~= 12 then
@@ -75,17 +83,17 @@ function playdate.update()
         end
         sprPlayer.velocity.y = 2
     end
-    if playdate.buttonJustPressed(playdate.kButtonA) and sprPlayer.onFloor then
+    if playdate.buttonJustPressed(playdate.kButtonA) and sprPlayer.onFloor and playing then
         sprPlayer.velocity.y = -4
         sprPlayer.lastFloor = false
         sprPlayer.onFloor = false
         sJump:play()
     elseif sprPlayer.lastFloor ~= sprPlayer.onFloor then sprPlayer.velocity.y = 0 end
 
-    if playdate.buttonIsPressed(playdate.kButtonLeft) then
+    if playdate.buttonIsPressed(playdate.kButtonLeft) and playing then
         sprPlayer.velocity.x = -1
         sprPlayer.flipped = gfx.kImageFlippedX
-    elseif playdate.buttonIsPressed(playdate.kButtonRight) then
+    elseif playdate.buttonIsPressed(playdate.kButtonRight) and playing then
         sprPlayer.velocity.x = 1
         sprPlayer.flipped = gfx.kImageUnflipped
     else
@@ -116,7 +124,7 @@ function playdate.update()
         end
     end
 
-    if sprPlayer.onFloor then
+    if sprPlayer.onFloor and playing then
         if sprPlayer.velocity.x < 0.5 and sprPlayer.velocity.x > -0.5 then
             if sprPlayer.counter <= 10 then
                 sprPlayer:setImage(tabPlayer[5])
@@ -138,6 +146,13 @@ function playdate.update()
                 sprPlayer.counter = 1
             end
         end
+    end
+
+    if level > 4 and sprPlayer.x > 165 and playing == true then
+        playing = false
+        mus:stop()
+        sprPlayer:setImage(tabPlayer[1])
+        playdate.timer.new(1000,function() sprPlayer:setImage(tabPlayer[2]) playdate.timer.new(1000,function() sprPlayer:setImage(tabPlayer[3]) playdate.timer.new(1000,function() sprPlayer:setImage(tabPlayer[2]) playdate.timer.new(1000,function() sprPlayer:setImage(tabPlayer[1]) playdate.timer.new(3000,function() sprPlayer:setVisible(false) killAll() sgn = true --[[createFireflies()]] sEnd:play() end) end) end) end) end)
     end
     
     gfx.clear()
@@ -163,9 +178,15 @@ function playdate.update()
     --imgOverlay:draw(-20,-20)
     gfx.setImageDrawMode(gfx.kDrawModeCopy)
     --updateLights()
+
+    if sgn then
+        imgGN:drawCentered(100,60)
+    end
+
     if debug then
     playdate.drawFPS(0,0)
     end
+    playdate.timer.updateTimers()
     pHurt:update()
     --tabPlayerFace[sprPlayer.frame]:drawCentered(sprPlayer.x,sprPlayer.y-1)
 end

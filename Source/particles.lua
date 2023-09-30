@@ -89,3 +89,8 @@ function updateLights()
         l:drawLight()
     end
 end
+
+function killAll()
+    rmLights()
+    curBG:remove()
+end
